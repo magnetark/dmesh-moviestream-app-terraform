@@ -1,3 +1,6 @@
+# --------------------------------
+# VPC RESOURCES
+# --------------------------------
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -7,8 +10,8 @@ module "vpc" {
   azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
   public_subnets  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 
-  enable_nat_gateway = true
-  enable_vpn_gateway = true
+  enable_nat_gateway = false
+  enable_vpn_gateway = false
   enable_dns_hostnames = true
   enable_dns_support   = true
 }
@@ -61,13 +64,50 @@ resource "aws_security_group" "database" {
   tags = merge(var.tags, { Name = "allow_database" })
 }
 
-
 # --------------------------------
 # IAM ROLE FOR NOTEBOOK
 # --------------------------------
 
-data "aws_iam_role" "sagemaker_role" {
-  name = "AmazonSageMakerServiceCatalogProductsUseRole"
+#data "aws_iam_role" "sagemaker_role" {
+#  name = "AmazonSageMakerServiceCatalogProductsUseRole"
+#}
+
+resource "aws_iam_role" "notebookrole" {
+  name = "moviestrea-app-notebookrole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "sagemaker.amazonaws.com"
+        }
+      },
+    ]
+  })
+  managed_policy_arns = [aws_iam_policy.policy_one.arn]
+
+  tags = {
+    tag-key = "tag-value"
+  }
+}
+
+resource "aws_iam_policy" "policy_one" {
+  name = "moviestream-app-kinesis-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = ["kinesis:*"]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
 }
 
 # --------------------------------
@@ -84,7 +124,7 @@ resource "aws_sagemaker_code_repository" "moviestream_app_code" {
 
 resource "aws_sagemaker_notebook_instance" "moviestream_notebook_instance" {
   name          = "moviestream-notebook-instance"
-  role_arn      = data.aws_iam_role.sagemaker_role.arn
+  role_arn      = aws_iam_role.notebookrole.arn#data.
   instance_type = var.moviestram_notebook_instance_type
   subnet_id     = module.vpc.public_subnets[0]
   security_groups = [aws_security_group.notebook.id]
