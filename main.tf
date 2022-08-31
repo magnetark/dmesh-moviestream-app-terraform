@@ -23,9 +23,9 @@ resource "aws_security_group" "notebook" {
 
   ingress {
     description = "Allow Jupyter"
-    from_port   = 8888
-    to_port     = 9000
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -47,9 +47,9 @@ resource "aws_security_group" "database" {
 
   ingress {
     description = "Allow db connection"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -149,7 +149,7 @@ resource "aws_db_instance" "moviestream_postgres_db" {
   instance_class         = var.moviestram_db_rds_instance_type
   allocated_storage      = 10
   engine                 = "postgres"
-  engine_version         = "14.3"
+  engine_version         = "13.7"
   db_name                = "moviestreamdb"
   port                   = var.moviestream_db_port
   username               = var.moviestream_db_username
@@ -158,6 +158,27 @@ resource "aws_db_instance" "moviestream_postgres_db" {
   vpc_security_group_ids = [aws_security_group.database.id]
   publicly_accessible    = true
   skip_final_snapshot    = true
+  parameter_group_name   = aws_db_parameter_group.postgres_params_group.name
 
   tags = merge(var.tags, { Name = "moviestream_postgres_db" })
+}
+
+# toca gestionar el cluster-"parameter-group" desde aquí para poder activar CDC
+resource "aws_db_parameter_group" "postgres_params_group" {
+  ################
+  # @IMPORTANT: Follow the instruction shown in the following link
+  # https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.PostgreSQL.html
+  # to allow CDC extraction of data with DMS for a AWS manage RDS (Postgres)
+  name   = "moviestream-postgres-params-group"
+  family = "postgres13"
+
+  parameter {
+    name  = "rds.logical_replication"
+    value = "1"
+  }
+
+  parameter {
+    name  = "wal_sender_timeout"
+    value = "0"
+  }
 }
