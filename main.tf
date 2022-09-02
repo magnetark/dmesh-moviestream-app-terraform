@@ -150,10 +150,10 @@ resource "aws_db_instance" "moviestream_postgres_db" {
   allocated_storage      = 10
   engine                 = "postgres"
   engine_version         = "13.7"
-  db_name                = "moviestreamdb"
-  port                   = var.moviestream_db_port
-  username               = var.moviestream_db_username
-  password               = var.moviestream_db_password
+  db_name                = var.moviestream_dbname
+  port                   = var.moviestream_dbport
+  username               = var.moviestream_dbuser
+  password               = var.moviestream_dbpass
   db_subnet_group_name   = aws_db_subnet_group.moviestream_postgres_subnet.name
   vpc_security_group_ids = [aws_security_group.database.id]
   publicly_accessible    = true
@@ -173,12 +173,59 @@ resource "aws_db_parameter_group" "postgres_params_group" {
   family = "postgres13"
 
   parameter {
+    apply_method = "pending-reboot"
     name  = "rds.logical_replication"
     value = "1"
   }
 
   parameter {
+    apply_method = "pending-reboot"
     name  = "wal_sender_timeout"
     value = "0"
   }
 }
+
+# ----------------------------------
+# PARAMETERS
+# ----------------------------------
+
+resource "aws_ssm_parameter" "dbhost" {
+  name  = "/moviestream/dbhost"
+  type  = "String"
+  value = aws_db_instance.moviestream_postgres_db.address
+}
+
+resource "aws_ssm_parameter" "dbport" {
+  name  = "/moviestream/dbport"
+  type  = "String"
+  value = var.moviestream_dbport
+}
+
+resource "aws_ssm_parameter" "dbuser" {
+  name  = "/moviestream/dbuser"
+  type  = "String"
+  value = var.moviestream_dbuser
+}
+
+resource "aws_ssm_parameter" "dbpass" {
+  name  = "/moviestream/dbpass"
+  type  = "SecureString"
+  value = var.moviestream_dbpass
+}
+
+resource "aws_ssm_parameter" "dbname" {
+  name  = "/moviestream/dbname"
+  type  = "String"
+  value = var.moviestream_dbname
+}
+
+resource "aws_ssm_parameter" "notebook_url" {
+  name  = "/moviestream/notebook_url"
+  type  = "String"
+  value = aws_sagemaker_notebook_instance.moviestream_notebook_instance.url
+}
+
+# data "aws_ssm_parameter" "dbhost" {
+#   name = "/moviestream/dbhost"
+# }
+# data.aws_ssm_parameter.dbhost.value

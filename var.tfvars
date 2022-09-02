@@ -1,2 +1,3 @@
-moviestream_db_username = "dbpostgresadmin"
-moviestream_db_password = "CHaNG3m3"
+moviestream_dbuser = "dbpostgresadmin"
+moviestream_dbpass = "CHaNG3m3"
+moviestream_dbname = "moviestreamdb"
