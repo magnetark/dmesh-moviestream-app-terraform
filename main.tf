@@ -106,6 +106,11 @@ resource "aws_iam_policy" "policy_one" {
         Effect   = "Allow"
         Resource = "*"
       },
+      {
+        Action   = ["ssm:*"]
+        Effect   = "Allow"
+        Resource = "*"
+      },
     ]
   })
 }
